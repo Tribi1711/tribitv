@@ -1,0 +1,20 @@
+{
+  "name": "TribiTV",
+  "short_name": "TribiTV",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "https://cdn.glitch.global/fc6a7ae3-538e-4aac-903b-31ac9b130bf7/1745233283246.png?v=1745233404996",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn.glitch.global/fc6a7ae3-538e-4aac-903b-31ac9b130bf7/1745233283246.png?v=1745233404996",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
