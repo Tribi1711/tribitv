@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TribiTV</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .player-container {
+            display: flex;
+            height: 100vh;
+            transition: all 0.3s ease-in-out;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .sidebar {
+            display: flex;
+            width: 320px;
+            background: linear-gradient(195deg, #1a1a1a 0%, #252525 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+            transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            opacity: 1;
+            overflow: hidden;
+        }
+
+        .player-container.fullscreen-mode .sidebar {
+            width: 0;
+            opacity: 0;
+            border-right: none;
+        }
+        
+        .player-container.fullscreen-mode .sidebar-icons,
+        .player-container.fullscreen-mode .channel-list-container {
+             display: none;
+        }
+
+        .sidebar-icons {
+            width: 60px;
+            background: linear-gradient(180deg, #151515 0%, #1e1e1e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            flex-shrink: 0;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar-icons .icon {
+            color: #aaa;
+            font-size: 20px;
+            margin-bottom: 25px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-icons .icon:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar-icons .icon.active-icon {
+             color: #fff;
+             background: linear-gradient(45deg, #007bff, #0056b3);
+        }
+
+        .channel-list-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .channel-list-container h2 {
+            margin: 0;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: normal;
+            color: #ccc;
+            background-color: #222;
+            border-bottom: 1px solid #333;
+            white-space: nowrap;
+        }
+
+        .channel-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #2a2a2a;
+        }
+
+        .channel-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            margin: 5px 10px;
+            border-bottom: 1px solid #2a2a2a;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+            background: rgba(30, 30, 30, 0.5);
+        }
+
+        .channel-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            transform: translateX(5px);
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .channel-item.active {
+            background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+            color: #fff;
+            border-left: 4px solid #007bff;
+            padding-left: 11px;
+            box-shadow: 3px 3px 12px rgba(0, 123, 255, 0.2);
+        }
+
+        .channel-item.active .channel-meta {
+            color: #eee;
+        }
+
+        .channel-logo {
+            width: 45px;
+            height: 30px;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+            font-size: 18px;
+            color: #fff;
+            background-color: #333;
+            border-radius: 4px;
+        }
+
+        /* Colores específicos para cada canal */
+        .channel-item[data-channel-name="ESPN DEPORTES"] .channel-logo {
+            background-color: #00a9e0;
+        }
+        .channel-item[data-channel-name="Tribiestar"] .channel-logo {
+            background-color: #000;
+        }
+        .channel-item[data-channel-name="Liga de Campeones"] .channel-logo {
+            background-color: #1a3e8c;
+        }
+        .channel-item[data-channel-name="LaLiga Hypermotion"] .channel-logo {
+            background-color: #ff6b00;
+        }
+
+        .channel-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .channel-name {
+            font-size: 14px;
+            color: #e0e0e0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .channel-item.active .channel-name {
+            color: #fff;
+        }
+
+        .channel-meta {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .channel-fav {
+            color: #aaa;
+            margin-left: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .channel-item.active .channel-fav {
+            color: #ffc107;
+        }
+
+        .channel-fav.favorite {
+            color: #ffc107;
+        }
+
+        .sidebar-footer {
+            padding: 10px 15px;
+            font-size: 11px;
+            color: #888;
+            background-color: #222;
+            border-top: 1px solid #333;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .video-area {
+            flex-grow: 1;
+            background-color: #000;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        #videoPlayerContainer {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        .placeholder-video {
+            text-align: center;
+            color: #555;
+            font-size: 1.2em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .placeholder-video p {
+            margin: 5px 0;
+        }
+
+        .app-logo {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        #externalPlayer {
+            width: 100%;
+            height: 100%;
+            display: none;
+            border: none;
+            background: #000;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-start;
+            padding: 20px;
+            box-sizing: border-box;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 25%);
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        .player-container.fullscreen-mode .video-overlay {
+             opacity: 0;
+        }
+
+        .top-right-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+
+        .top-right-info span {
+            color: #fff;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+
+        .top-right-info .signal-info {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        /* Botón de menú */
+        .menu-toggle {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: rgba(30, 30, 30, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        .menu-toggle:hover {
+            background: #007bff;
+            transform: scale(1.1);
+        }
+
+        .menu-toggle.active {
+            opacity: 1;
+            display: flex;
+        }
+
+        .menu-toggle i {
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .player-container.fullscreen-mode .menu-toggle {
+            display: flex;
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Barra de búsqueda */
+        .search-container {
+            padding: 10px 15px;
+            background-color: #222;
+            display: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: none;
+            background-color: #333;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: 1px solid #007bff;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 260px;
+            }
+            
+            .channel-name {
+                font-size: 13px;
+            }
+            
+            .channel-logo {
+                width: 40px;
+                font-size: 16px;
+            }
+            
+            .video-overlay {
+                padding: 10px;
+            }
+            
+            .app-logo {
+                width: 120px;
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="player-container" id="playerContainer">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-icons" id="sidebarIcons">
+                <i class="fas fa-search icon active-icon" data-action="search"></i>
+                <i class="fas fa-star icon" data-action="favorites"></i>
+                <i class="fas fa-list icon" data-action="list"></i>
+                <i class="fas fa-cog icon" data-action="settings"></i>
+            </div>
+            <div class="channel-list-container">
+                <div class="search-container" id="searchContainer">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar canales...">
+                </div>
+                <h2>Lista de canales</h2>
+                <ul class="channel-list" id="channelList">
+                    <li class="channel-item" data-channel-name="TRB1" data-channel-url="https://sportzonline.ps/channels/hd/hd1.php">
+                        <span class="channel-logo"><i class="fas fa-futbol"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB1</span>
+                            <span class="channel-meta">TRB1-INGLÉS</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB2" data-channel-url="https://sportzonline.ps/channels/hd/hd2.php">
+                        <span class="channel-logo"><i class="fas fa-play"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB2</span>
+                            <span class="channel-meta">TRB2-INGLÉS</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item active" data-channel-name="TRB3" data-channel-url="https://sportzonline.ps/channels/hd/hd3.php">
+                        <span class="channel-logo"><i class="fas fa-trophy"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB3</span>
+                            <span class="channel-meta">TRB3-ALEMÁN</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB4" data-channel-url="https://sportzonline.ps/channels/hd/hd4.php">
+                        <span class="channel-logo"><i class="fas fa-running"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB4</span>
+                            <span class="channel-meta">TRB4-INGLÉS</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB5" data-channel-url="https://sportzonline.ps/channels/hd/hd5.php">
+                        <span class="channel-logo"><i class="fa-solid fa-baseball"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB5</span>
+                            <span class="channel-meta">TRB5-INGLÉS</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB6" data-channel-url="https://sportzonline.ps/channels/hd/hd6.php">
+                        <span class="channel-logo"><i class="fa-solid fa-bowling-ball"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB6</span>
+                            <span class="channel-meta">TRB6-ESPAÑOL</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB7" data-channel-url="https://sportzonline.ps/channels/hd/hd7.php">
+                        <span class="channel-logo"><i class="fa-solid fa-bolt"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB7</span>
+                            <span class="channel-meta">TRB7-ITALIANO</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB8" data-channel-url="https://sportzonline.ps/channels/hd/hd8.php">
+                        <span class="channel-logo"><i class="fa-solid fa-mobile"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB8</span>
+                            <span class="channel-meta">TRB8-ITALIANO</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB6" data-channel-url="https://sportzonline.ps/channels/hd/hd9.php">
+                        <span class="channel-logo"><i class="fa-solid fa-chalkboard"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB9</span>
+                            <span class="channel-meta">TRB9-ESPAÑOL</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB6" data-channel-url="https://sportzonline.ps/channels/hd/hd10.php">
+                        <span class="channel-logo"><i class="fa-solid fa-tv"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB10</span>
+                            <span class="channel-meta">TRB10-ESPAÑOL</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                    <li class="channel-item" data-channel-name="TRB6" data-channel-url="https://sportzonline.ps/channels/hd/hd11.php">
+                        <span class="channel-logo"><i class="fa-solid fa-user-secret"></i></span>
+                        <div class="channel-info">
+                            <span class="channel-name">TRB11</span>
+                            <span class="channel-meta">TRB11-INGLÉS</span>
+                        </div>
+                        <i class="far fa-star channel-fav" title="Marcar como favorito"></i>
+                    </li>
+                </ul>
+                <div class="sidebar-footer">
+                    TribiTV
+                </div>
+            </div>
+        </aside>
+
+        <main class="video-area" id="videoArea">
+            <div class="video-overlay" id="videoOverlay">
+                <div class="top-right-info" id="topRightInfo">
+                    <span id="overlayChannelName">Liga de Campeones</span>
+                    <span class="signal-info" id="overlaySignalInfo">--:-- | --KB/s | --</span>
+                </div>
+            </div>
+            <div id="videoPlayerContainer">
+                <div class="placeholder-video" id="placeholderVideo">
+                    <img src="https://cdn.glitch.global/fc6a7ae3-538e-4aac-903b-31ac9b130bf7/1745233283246.png?v=1745233404996" alt="TribiTV Logo" class="app-logo">
+                    <p>Selecciona un canal para comenzar</p>
+                    <p>Canal actual: <span id="currentChannelName">Ninguno</span></p>
+                </div>
+                <iframe id="externalPlayer" allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const playerContainer = document.getElementById('playerContainer');
+            const videoArea = document.getElementById('videoArea');
+            const channelList = document.getElementById('channelList');
+            const channelItems = channelList.querySelectorAll('.channel-item');
+            const sidebarIconsContainer = document.getElementById('sidebarIcons');
+            const icons = sidebarIconsContainer.querySelectorAll('.icon');
+            const menuToggle = document.getElementById('menuToggle');
+            const searchContainer = document.getElementById('searchContainer');
+            const searchInput = document.getElementById('searchInput');
+
+            const externalPlayer = document.getElementById('externalPlayer');
+            const currentChannelNameSpan = document.getElementById('currentChannelName');
+            const overlayChannelName = document.getElementById('overlayChannelName');
+            const placeholderVideo = document.getElementById('placeholderVideo');
+            const overlaySignalInfo = document.getElementById('overlaySignalInfo');
+
+            let favorites = JSON.parse(localStorage.getItem('channelFavorites')) || {};
+            let signalUpdateInterval;
+
+            // Función para simular información de señal
+            function updateSignalInfo() {
+                const bitrate = Math.floor(Math.random() * 5000) + 500;
+                const quality = ['240p', '360p', '480p', '720p', '1080p'][Math.floor(Math.random() * 5)];
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                overlaySignalInfo.textContent = `${timeString} | ${bitrate}KB/s | ${quality}`;
+            }
+
+            // Función para cargar el canal seleccionado
+            function loadChannel(channelUrl, channelName) {
+                currentChannelNameSpan.textContent = channelName;
+                overlayChannelName.textContent = channelName;
+                placeholderVideo.style.display = 'none';
+                externalPlayer.src = channelUrl;
+                externalPlayer.style.display = 'block';
+                
+                // Iniciar actualización de información de señal
+                clearInterval(signalUpdateInterval);
+                updateSignalInfo();
+                signalUpdateInterval = setInterval(updateSignalInfo, 3000);
+                
+                try {
+                    externalPlayer.contentWindow.location.replace(channelUrl);
+                } catch (e) {
+                    console.log("Política de mismo origen impide acceso directo al iframe");
+                }
+            }
+
+            // Función para alternar favoritos
+            function toggleFavorite(channelName, favIcon) {
+                favorites[channelName] = !favorites[channelName];
+                localStorage.setItem('channelFavorites', JSON.stringify(favorites));
+                
+                if (favorites[channelName]) {
+                    favIcon.classList.replace('far', 'fas');
+                    favIcon.classList.add('favorite');
+                } else {
+                    favIcon.classList.replace('fas', 'far');
+                    favIcon.classList.remove('favorite');
+                }
+            }
+
+            // Inicializar favoritos
+            function initializeFavorites() {
+                channelItems.forEach(item => {
+                    const channelName = item.getAttribute('data-channel-name');
+                    const favIcon = item.querySelector('.channel-fav');
+                    
+                    if (favorites[channelName]) {
+                        favIcon.classList.replace('far', 'fas');
+                        favIcon.classList.add('favorite');
+                    }
+                });
+            }
+
+            // Función para buscar canales
+            function searchChannels(query) {
+                const normalizedQuery = query.toLowerCase().trim();
+                
+                channelItems.forEach(item => {
+                    const channelName = item.getAttribute('data-channel-name').toLowerCase();
+                    const channelMeta = item.querySelector('.channel-meta').textContent.toLowerCase();
+                    
+                    if (channelName.includes(normalizedQuery) || channelMeta.includes(normalizedQuery)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+
+            // Event Listener para los Canales
+            channelItems.forEach(item => {
+                // Click en el canal
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('channel-fav') || e.target.parentElement.classList.contains('channel-fav')) {
+                        return;
+                    }
+
+                    const currentActive = channelList.querySelector('.channel-item.active');
+                    if (currentActive) currentActive.classList.remove('active');
+
+                    item.classList.add('active');
+                    const channelName = item.getAttribute('data-channel-name');
+                    const channelUrl = item.getAttribute('data-channel-url');
+
+                    loadChannel(channelUrl, channelName);
+                    playerContainer.classList.add('fullscreen-mode');
+                    menuToggle.classList.add('active');
+                });
+
+                // Click en la estrella
+                const favIcon = item.querySelector('.channel-fav');
+                favIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const channelName = item.getAttribute('data-channel-name');
+                    toggleFavorite(channelName, favIcon);
+                });
+            });
+
+            // Funcionalidad de los iconos de la sidebar
+            icons.forEach(icon => {
+                icon.addEventListener('click', () => {
+                    const action = icon.getAttribute('data-action');
+                    
+                    // Quitar active de todos los iconos
+                    icons.forEach(i => i.classList.remove('active-icon'));
+                    // Añadir active al clickeado
+                    icon.classList.add('active-icon');
+
+                    switch (action) {
+                        case 'search':
+                            searchContainer.style.display = 'block';
+                            searchInput.focus();
+                            break;
+                            
+                        case 'favorites':
+                            searchContainer.style.display = 'none';
+                            channelItems.forEach(item => {
+                                const channelName = item.getAttribute('data-channel-name');
+                                item.style.display = favorites[channelName] ? 'flex' : 'none';
+                            });
+                            break;
+                            
+                        case 'list':
+                            searchContainer.style.display = 'none';
+                            channelItems.forEach(item => {
+                                item.style.display = 'flex';
+                            });
+                            break;
+                            
+                        case 'settings':
+                            searchContainer.style.display = 'none';
+                            alert('TRB1-INGLÉS,TRB2-INGLÉS,TRB3-ALEMÁN,TRB4-INGLÉS,TRB5-INGLÉS,TRB6-ESPAÑOL,TRB7-ITALIANO,TRB8-ITALIANO,TRB9-ESPAÑOL,TRB10-ESPAÑOL,TRB11-INGLÉS');
+                            break;
+                    }
+                });
+            });
+
+            // Evento para la búsqueda
+            searchInput.addEventListener('input', (e) => {
+                searchChannels(e.target.value);
+            });
+
+            // Detección de doble toque para móviles
+            let lastTap = 0;
+            videoArea.addEventListener('touchstart', (e) => {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                
+                if (tapLength < 500 && tapLength > 0) {
+                    playerContainer.classList.toggle('fullscreen-mode');
+                    menuToggle.classList.toggle('active', playerContainer.classList.contains('fullscreen-mode'));
+                    e.preventDefault();
+                }
+                lastTap = currentTime;
+            });
+
+            // Doble clic para desktop
+            videoArea.addEventListener('dblclick', () => {
+                playerContainer.classList.toggle('fullscreen-mode');
+                menuToggle.classList.toggle('active', playerContainer.classList.contains('fullscreen-mode'));
+            });
+
+            // Botón de menú
+            menuToggle.addEventListener('click', () => {
+                playerContainer.classList.remove('fullscreen-mode');
+                menuToggle.classList.remove('active');
+            });
+
+            // Inicializar favoritos
+            initializeFavorites();
+
+            // Mostrar logo al inicio (ningún canal seleccionado inicialmente)
+            currentChannelNameSpan.textContent = 'Ninguno';
+            overlayChannelName.textContent = '---';
+        });
+
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful');
+                }).catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
